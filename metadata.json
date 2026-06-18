@@ -1,0 +1,10 @@
+{
+  "uuid": "notificate@gabe-grinspan.github.io",
+  "name": "Notificate",
+  "description": "Show notification banners immediately and stack them instead of queueing them one at a time. New banners appear underneath the previous ones, up to a configurable maximum (default 5). Setting the maximum to 1 reproduces the default GNOME behaviour. Also adds options for on-screen position and a minimal banner layout.",
+  "shell-version": ["50"],
+  "settings-schema": "org.gnome.shell.extensions.notificate",
+  "gettext-domain": "notificate",
+  "version": 1,
+  "url": "https://github.com/gabe-grinspan/notificate"
+}

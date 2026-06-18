@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-FileCopyrightText: 2026 Gabe Grinspan
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<schemalist>
+  <enum id="org.gnome.shell.extensions.notificate.horizontal-alignment">
+    <value nick="fill" value="0"/>
+    <value nick="left" value="1"/>
+    <value nick="center" value="2"/>
+    <value nick="right" value="3"/>
+  </enum>
+
+  <enum id="org.gnome.shell.extensions.notificate.vertical-alignment">
+    <value nick="fill" value="0"/>
+    <value nick="top" value="1"/>
+    <value nick="center" value="2"/>
+    <value nick="bottom" value="3"/>
+  </enum>
+
+  <schema id="org.gnome.shell.extensions.notificate"
+          path="/org/gnome/shell/extensions/notificate/">
+    <key name="max-notifications" type="i">
+      <default>5</default>
+      <range min="1" max="20"/>
+      <summary>Maximum notifications shown at once</summary>
+      <description>
+        The maximum number of notification banners to display stacked on
+        screen at the same time. Additional notifications wait in a queue and
+        appear as visible ones disappear. A value of 1 reproduces the default
+        GNOME behaviour of showing one banner at a time.
+      </description>
+    </key>
+
+    <key name="horizontal-alignment"
+         enum="org.gnome.shell.extensions.notificate.horizontal-alignment">
+      <default>'center'</default>
+      <summary>Horizontal alignment</summary>
+      <description>Horizontal position of notifications on screen.</description>
+    </key>
+
+    <key name="vertical-alignment"
+         enum="org.gnome.shell.extensions.notificate.vertical-alignment">
+      <default>'top'</default>
+      <summary>Vertical alignment</summary>
+      <description>Vertical position of notifications on screen.</description>
+    </key>
+
+    <key name="hide-app-title-row" type="b">
+      <default>false</default>
+      <summary>Hide App Title Row</summary>
+      <description>Hide the title and time row for a minimal notification.</description>
+    </key>
+  </schema>
+</schemalist>

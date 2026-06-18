@@ -1,0 +1,5 @@
+# Compiled GSettings schema (build artifact)
+schemas/gschemas.compiled
+
+# Packaged extension
+*.zip
