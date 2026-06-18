@@ -9,8 +9,8 @@
     spacing: 0;
 }
 
-/* "Hide title bar" layout: drop the header row, keep title/body + close button. */
-.notification-banner.notificate-hide-title-bar {
+/* "No app name" layout: drop the header row, keep title/body + close button. */
+.notification-banner.notificate-no-app-name {
     /* Without the header row the default 64px min-height is taller than the
      * title/body, leaving empty space above and below; hug the contents. */
     min-height: 0;
@@ -20,7 +20,7 @@
  * content row ("If the header isn't displayed we need more top margin"), which
  * shoves the title/body (and the centred close button) downward and off the
  * card's vertical centre. We keep our own symmetric padding, so zero it. */
-.notification-banner.notificate-hide-title-bar .message-box:first-child {
+.notification-banner.notificate-no-app-name .message-box:first-child {
     margin-top: 0;
 }
 

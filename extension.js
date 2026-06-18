@@ -362,11 +362,14 @@ class NotificationStack {
         message.add_style_class_name('notification-banner');
 
         switch (this._settings.get_string('notification-layout')) {
-        case 'hide-title-bar':
-            this._applyHideTitleBar(message);
+        case 'no-app-name':
+            this._applyNoAppName(message);
             break;
         case 'compact':
-            this._applyCompact(message);
+            this._applyCompact(message, false);
+            break;
+        case 'compacter':
+            this._applyCompact(message, true);
             break;
         }
 
@@ -496,9 +499,9 @@ class NotificationStack {
         });
     }
 
-    // "Hide title bar" layout: drop the app-name/icon/time header row but keep
-    // the native close button so it stays its proper circular self.
-    _applyHideTitleBar(message) {
+    // "No app name" layout: drop the app-name/icon/time header row but keep the
+    // title, body and the native close button (still its proper circular self).
+    _applyNoAppName(message) {
         try {
             const header = message._header;
             const contentRow = message._icon?.get_parent();
@@ -529,18 +532,19 @@ class NotificationStack {
                 contentRow.add_child(wrapper);
             }
 
-            message.add_style_class_name('notificate-hide-title-bar');
+            message.add_style_class_name('notificate-no-app-name');
         } catch (e) {
-            logError(e, 'notificate: failed to apply hide-title-bar layout');
+            logError(e, 'notificate: failed to apply no-app-name layout');
         }
     }
 
-    // "Compact" layout: replace the whole banner with a single line of
-    // "App • Title: Body". We build our own line rather than reusing the native
+    // "Compact" / "Compacter" layout: replace the whole banner with a single
+    // line of "App • Title: Body" (Compact), or just "Title: Body" when hideApp
+    // is set (Compacter). We build our own line rather than reusing the native
     // header, because the header's TimeLabel re-shows itself whenever its
     // datetime is refreshed (so a hidden "Just now" keeps coming back). Only the
     // close button is borrowed, wrapped so it keeps its circular styling.
-    _applyCompact(message) {
+    _applyCompact(message, hideApp) {
         try {
             const notification = message.notification;
             const header = message._header;
@@ -553,20 +557,24 @@ class NotificationStack {
                 y_align: Clutter.ActorAlign.CENTER,
             });
 
-            const appLabel = new St.Label({
-                style_class: 'notificate-compact-app',
-                y_align: Clutter.ActorAlign.CENTER,
-            });
-            notification.source.bind_property('title', appLabel, 'text',
-                GObject.BindingFlags.SYNC_CREATE);
-            box.add_child(appLabel);
+            // The app name and separator dot are dropped in the "Compacter"
+            // variant, leaving just the title and body.
+            if (!hideApp) {
+                const appLabel = new St.Label({
+                    style_class: 'notificate-compact-app',
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                notification.source.bind_property('title', appLabel, 'text',
+                    GObject.BindingFlags.SYNC_CREATE);
+                box.add_child(appLabel);
 
-            const dot = new St.Label({
-                style_class: 'notificate-compact-dot',
-                text: '•',
-                y_align: Clutter.ActorAlign.CENTER,
-            });
-            box.add_child(dot);
+                const dot = new St.Label({
+                    style_class: 'notificate-compact-dot',
+                    text: '•',
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                box.add_child(dot);
+            }
 
             const titleLabel = new St.Label({
                 style_class: 'notificate-compact-title',

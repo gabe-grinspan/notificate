@@ -19,12 +19,16 @@ notifications appear, and an optional **minimal banner layout**.
   notifications wait in a queue and appear as visible ones disappear. Set the
   maximum to **1** to reproduce stock GNOME behaviour.
 - **On-screen position.** Independent horizontal (Fill / Left / Center / Right)
-  and vertical (Fill / Top / Center / Bottom) alignment. The entrance animation
-  follows the vertical position — banners slide down from the top, or scale in
-  place elsewhere.
-- **Compact layouts.** Choose a *Notification Layout*: the full **Default**
-  banner, **Hide title bar** (drops the app name, icon, and timestamp), or
-  **Compact** — a single line of "app • title: body".
+  and vertical (Top / Center / Bottom) alignment. The entrance animation follows
+  the vertical position — banners slide down from the top, up from the bottom, or
+  scale in place in the centre.
+- **Compact layouts.** Choose a *Notification Layout*:
+  - **Default** — the full banner (app header, title, and body).
+  - **No app row** — drops the app name, icon, and timestamp row, keeping the
+    title and body.
+  - **Compact** — a single line of "app • title: body".
+  - **Compacter** — the same single line without the app name, i.e.
+    "title: body".
 - **Plays nicely with the shell.** Honours Do Not Disturb, urgency levels,
   per-app notification settings, fullscreen/busy suppression, critical-urgency
   banners (which stay until dismissed and are exempt from the limit), and the
@@ -67,7 +71,7 @@ gnome-extensions prefs notificate@gabe-grinspan.github.io
 | Maximum notifications | `5` | How many banners to stack at once (1–20). `1` ≈ stock GNOME. |
 | Horizontal Alignment | `Center` | Horizontal position of notifications on screen. |
 | Vertical Alignment | `Top` | Vertical position of notifications on screen. |
-| Notification Layout | `Default` | Banner detail: `Default`, `Hide title bar`, or `Compact`. |
+| Notification Layout | `Default` | Banner detail: `Default`, `No app row`, `Compact`, or `Compacter`. |
 
 ## Compatibility
 

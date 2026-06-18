@@ -8,7 +8,7 @@ import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Ex
 
 const HORIZONTAL_VALUES = ['fill', 'left', 'center', 'right'];
 const VERTICAL_VALUES = ['top', 'center', 'bottom'];
-const LAYOUT_VALUES = ['default', 'hide-title-bar', 'compact'];
+const LAYOUT_VALUES = ['default', 'no-app-name', 'compact', 'compacter'];
 
 export default class NotificatePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -76,7 +76,7 @@ export default class NotificatePreferences extends ExtensionPreferences {
             values: LAYOUT_VALUES,
             title: _('Notification Layout'),
             subtitle: _('How much of each banner to show'),
-            labels: [_('Default'), _('Hide title bar'), _('Compact')],
+            labels: [_('Default'), _('No app row'), _('Compact'), _('Compacter')],
         }));
 
         window.set_default_size(560, 420);
