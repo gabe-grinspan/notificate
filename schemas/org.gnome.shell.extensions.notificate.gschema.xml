@@ -17,6 +17,12 @@
     <value nick="bottom" value="3"/>
   </enum>
 
+  <enum id="org.gnome.shell.extensions.notificate.notification-layout">
+    <value nick="default" value="0"/>
+    <value nick="hide-title-bar" value="1"/>
+    <value nick="compact" value="2"/>
+  </enum>
+
   <schema id="org.gnome.shell.extensions.notificate"
           path="/org/gnome/shell/extensions/notificate/">
     <key name="max-notifications" type="i">
@@ -45,10 +51,15 @@
       <description>Vertical position of notifications on screen.</description>
     </key>
 
-    <key name="hide-app-title-row" type="b">
-      <default>false</default>
-      <summary>Hide App Title Row</summary>
-      <description>Hide the title and time row for a minimal notification.</description>
+    <key name="notification-layout"
+         enum="org.gnome.shell.extensions.notificate.notification-layout">
+      <default>'default'</default>
+      <summary>Notification layout</summary>
+      <description>
+        How much of each banner to show. "default" is the full banner;
+        "hide-title-bar" drops the app name, icon and time row; "compact" is a
+        single line of app name and notification title.
+      </description>
     </key>
   </schema>
 </schemalist>

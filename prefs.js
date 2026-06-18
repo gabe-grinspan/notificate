@@ -8,6 +8,7 @@ import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Ex
 
 const HORIZONTAL_VALUES = ['fill', 'left', 'center', 'right'];
 const VERTICAL_VALUES = ['top', 'center', 'bottom'];
+const LAYOUT_VALUES = ['default', 'hide-title-bar', 'compact'];
 
 export default class NotificatePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -70,12 +71,13 @@ export default class NotificatePreferences extends ExtensionPreferences {
         });
         page.add(appearanceGroup);
 
-        const hideAppTitleRow = new Adw.SwitchRow({
-            title: _('Hide App Title Row'),
-            subtitle: _('Hide title and time row'),
-        });
-        appearanceGroup.add(hideAppTitleRow);
-        settings.bind('hide-app-title-row', hideAppTitleRow, 'active', 0);
+        appearanceGroup.add(this._buildComboRow(settings, {
+            key: 'notification-layout',
+            values: LAYOUT_VALUES,
+            title: _('Notification Layout'),
+            subtitle: _('How much of each banner to show'),
+            labels: [_('Default'), _('Hide title bar'), _('Compact')],
+        }));
 
         window.set_default_size(560, 420);
     }

@@ -13,6 +13,7 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -360,8 +361,14 @@ class NotificationStack {
         message.can_focus = false;
         message.add_style_class_name('notification-banner');
 
-        if (this._settings.get_boolean('hide-app-title-row'))
-            this._applyMinimal(message);
+        switch (this._settings.get_string('notification-layout')) {
+        case 'hide-title-bar':
+            this._applyHideTitleBar(message);
+            break;
+        case 'compact':
+            this._applyCompact(message);
+            break;
+        }
 
         // Wrap the banner so its claimed height can be animated independently of
         // its contents, letting the rest of the stack reflow smoothly.
@@ -489,34 +496,84 @@ class NotificationStack {
         });
     }
 
-    // Minimal layout: drop the app-name/icon/time header but keep the close
-    // button, moving it beside the title/body. Mirrors the "Hide App Title
-    // Row" option from notification-configurator.
-    _applyMinimal(message) {
+    // "Hide title bar" layout: drop the app-name/icon/time header row and move
+    // just the close button beside the title/body.
+    _applyHideTitleBar(message) {
         try {
             const header = message._header;
             if (!header)
                 return;
 
-            // Remove everything from the header except the expand/close
-            // buttons (i.e. the app icon and the source-name/time block).
-            for (const child of header.get_children()) {
-                if (child !== header.expandButton && child !== header.closeButton)
-                    child.destroy();
-            }
-            header.x_expand = false;
+            // Collapse the whole header row...
+            header.hide();
 
-            // Move the now button-only header into the content row so the
-            // close button sits next to the title/body instead of above it.
+            // ...but keep the close button by moving it into the content row,
+            // vertically centred next to the title/body.
+            const closeButton = header.closeButton;
             const contentRow = message._icon?.get_parent();
-            if (contentRow) {
-                header.get_parent()?.remove_child(header);
-                contentRow.add_child(header);
+            if (closeButton && contentRow) {
+                closeButton.y_align = Clutter.ActorAlign.CENTER;
+                header.remove_child(closeButton);
+                contentRow.add_child(closeButton);
             }
 
-            message.add_style_class_name('notificate-minimal');
+            message.add_style_class_name('notificate-hide-title-bar');
         } catch (e) {
-            logError(e, 'notificate: failed to apply minimal layout');
+            logError(e, 'notificate: failed to apply hide-title-bar layout');
+        }
+    }
+
+    // "Compact" layout: replace the banner contents with a single line of
+    // "App name • Title", ellipsised to fit.
+    _applyCompact(message) {
+        try {
+            const notification = message.notification;
+            if (!notification)
+                return;
+
+            const box = new St.BoxLayout({
+                style_class: 'notificate-compact-box',
+                x_expand: true,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+
+            const appLabel = new St.Label({
+                style_class: 'notificate-compact-app',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            notification.source.bind_property('title', appLabel, 'text',
+                GObject.BindingFlags.SYNC_CREATE);
+            box.add_child(appLabel);
+
+            const dot = new St.Label({
+                style_class: 'notificate-compact-dot',
+                text: '•',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            box.add_child(dot);
+
+            const titleLabel = new St.Label({
+                style_class: 'notificate-compact-title',
+                x_expand: true,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            titleLabel.clutter_text.single_line_mode = true;
+            titleLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+
+            const updateText = () => {
+                const text = notification.title || notification.body || '';
+                titleLabel.text = text.replace(/\n/g, ' ');
+            };
+            updateText();
+            notification.connectObject('notify::title', updateText, message);
+            box.add_child(titleLabel);
+
+            // Swap out the full banner contents for the single-line box. The
+            // message stays an St.Button, so click-to-activate still works.
+            message.set_child(box);
+            message.add_style_class_name('notificate-compact');
+        } catch (e) {
+            logError(e, 'notificate: failed to apply compact layout');
         }
     }
 }

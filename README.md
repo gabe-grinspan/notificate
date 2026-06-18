@@ -22,8 +22,9 @@ notifications appear, and an optional **minimal banner layout**.
   and vertical (Fill / Top / Center / Bottom) alignment. The entrance animation
   follows the vertical position — banners slide down from the top, or scale in
   place elsewhere.
-- **Minimal layout.** An optional *Hide App Title Row* mode that drops the app
-  name, icon, and timestamp for a compact banner.
+- **Compact layouts.** Choose a *Notification Layout*: the full **Default**
+  banner, **Hide title bar** (drops the app name, icon, and timestamp), or
+  **Compact** — a single line of app name and notification title.
 - **Plays nicely with the shell.** Honours Do Not Disturb, urgency levels,
   per-app notification settings, fullscreen/busy suppression, critical-urgency
   banners (which stay until dismissed and are exempt from the limit), and the
@@ -66,7 +67,7 @@ gnome-extensions prefs notificate@gabe-grinspan.github.io
 | Maximum notifications | `5` | How many banners to stack at once (1–20). `1` ≈ stock GNOME. |
 | Horizontal Alignment | `Center` | Horizontal position of notifications on screen. |
 | Vertical Alignment | `Top` | Vertical position of notifications on screen. |
-| Hide App Title Row | `Off` | Hide the title and time row for a minimal notification. |
+| Notification Layout | `Default` | Banner detail: `Default`, `Hide title bar`, or `Compact`. |
 
 ## Compatibility
 

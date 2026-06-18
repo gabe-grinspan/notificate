@@ -1,15 +1,35 @@
 /* SPDX-FileCopyrightText: 2026 Gabe Grinspan
  * SPDX-License-Identifier: GPL-3.0-or-later */
 
-/* Minimal notification ("Hide App Title Row"): the close/expand buttons get
- * reparented next to the title and body, so keep them vertically centred and
- * give the content a touch of breathing room. */
-.notificate-minimal .message-content {
+/* "Hide title bar" layout: the close button is reparented next to the title
+ * and body, so keep it vertically centred with a little breathing room. */
+.notificate-hide-title-bar .message-content {
     margin-top: 2px;
     margin-bottom: 2px;
 }
 
-.notificate-minimal .message-close-button,
-.notificate-minimal .message-expand-button {
+.notificate-hide-title-bar .message-close-button {
     margin-left: 6px;
+}
+
+/* "Compact" layout: a single line of "App name • Title". */
+.notification-banner.notificate-compact {
+    min-height: 0;
+}
+
+.notificate-compact-box {
+    spacing: 8px;
+    padding: 6px 10px;
+}
+
+.notificate-compact-app {
+    font-weight: bold;
+}
+
+.notificate-compact-dot {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.notificate-compact-title {
+    color: rgba(255, 255, 255, 0.85);
 }
