@@ -10,10 +10,26 @@
     spacing: 0;
 }
 
-/* "Compact" layout: a single line of "App • Title: Body" built on top of the
- * native message header, so the close button keeps its normal styling. */
+/* Without the header row, the banner's default 64px min-height is taller than
+ * the title/body content, leaving empty space above and below. Let the card
+ * shrink to hug its contents instead. */
+.notification-banner.notificate-hide-title-bar {
+    min-height: 0;
+}
+
+/* "Compact" layout: a single self-built line of "App • Title: Body". The
+ * `.message` root already supplies symmetric padding; the borrowed close button
+ * (in a message-header-classed wrapper) keeps its native circular styling. */
 .notification-banner.notificate-compact {
     min-height: 0;
+}
+
+.notificate-compact-box {
+    spacing: 8px;
+}
+
+.notificate-compact-app {
+    font-weight: bold;
 }
 
 .notificate-compact-dot {

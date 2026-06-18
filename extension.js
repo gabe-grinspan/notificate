@@ -535,9 +535,11 @@ class NotificationStack {
         }
     }
 
-    // "Compact" layout: collapse the banner to a single line of
-    // "App • Title: Body", reusing the native header so the close button keeps
-    // its normal circular styling.
+    // "Compact" layout: replace the whole banner with a single line of
+    // "App • Title: Body". We build our own line rather than reusing the native
+    // header, because the header's TimeLabel re-shows itself whenever its
+    // datetime is refreshed (so a hidden "Just now" keeps coming back). Only the
+    // close button is borrowed, wrapped so it keeps its circular styling.
     _applyCompact(message) {
         try {
             const notification = message.notification;
@@ -545,28 +547,26 @@ class NotificationStack {
             if (!notification || !header)
                 return;
 
-            // Drop the source icon, expand button and timestamp; keep the
-            // bound app-name label and the native close button.
-            const closeButton = header.closeButton;
-            header.expandButton?.hide();
-            header.timeLabel?.hide();
-            const sourceIcon = header.get_first_child();
-            if (sourceIcon && sourceIcon !== closeButton)
-                sourceIcon.hide();
+            const box = new St.BoxLayout({
+                style_class: 'notificate-compact-box',
+                x_expand: true,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
 
-            // The header-content box already holds the bold, source-bound app
-            // name (its first child). Append "• Title: Body" after it.
-            const headerContent = header.get_children().find(
-                c => c.has_style_class_name?.('message-header-content'));
-            if (!headerContent)
-                return;
+            const appLabel = new St.Label({
+                style_class: 'notificate-compact-app',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            notification.source.bind_property('title', appLabel, 'text',
+                GObject.BindingFlags.SYNC_CREATE);
+            box.add_child(appLabel);
 
             const dot = new St.Label({
                 style_class: 'notificate-compact-dot',
                 text: '•',
                 y_align: Clutter.ActorAlign.CENTER,
             });
-            headerContent.add_child(dot);
+            box.add_child(dot);
 
             const titleLabel = new St.Label({
                 style_class: 'notificate-compact-title',
@@ -586,13 +586,26 @@ class NotificationStack {
                 'notify::title', updateText,
                 'notify::body', updateText,
                 message);
-            headerContent.add_child(titleLabel);
+            box.add_child(titleLabel);
 
-            // Hide the full content row (icon, title, body) and any actions, so
-            // only the single header line remains.
-            message._icon?.get_parent()?.hide();
-            message._actionBin?.hide();
+            // Borrow the native close button (circular "X"). Wrapping it in a
+            // `message-header`-classed element keeps the theme styling matching
+            // after it leaves the real header.
+            const closeButton = header.closeButton;
+            if (closeButton) {
+                const wrapper = new St.Bin({
+                    style_class: 'message-header notificate-close-wrapper',
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                header.remove_child(closeButton);
+                closeButton.y_align = Clutter.ActorAlign.CENTER;
+                wrapper.set_child(closeButton);
+                box.add_child(wrapper);
+            }
 
+            // Swap the full banner contents for the single-line box. The message
+            // stays an St.Button, so click-to-activate still works.
+            message.set_child(box);
             message.add_style_class_name('notificate-compact');
         } catch (e) {
             logError(e, 'notificate: failed to apply compact layout');
