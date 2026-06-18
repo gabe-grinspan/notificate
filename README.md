@@ -24,7 +24,7 @@ notifications appear, and an optional **minimal banner layout**.
   place elsewhere.
 - **Compact layouts.** Choose a *Notification Layout*: the full **Default**
   banner, **Hide title bar** (drops the app name, icon, and timestamp), or
-  **Compact** — a single line of app name and notification title.
+  **Compact** — a single line of "app • title: body".
 - **Plays nicely with the shell.** Honours Do Not Disturb, urgency levels,
   per-app notification settings, fullscreen/busy suppression, critical-urgency
   banners (which stay until dismissed and are exempt from the limit), and the

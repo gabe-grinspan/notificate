@@ -1,29 +1,19 @@
 /* SPDX-FileCopyrightText: 2026 Gabe Grinspan
  * SPDX-License-Identifier: GPL-3.0-or-later */
 
-/* "Hide title bar" layout: the close button is reparented next to the title
- * and body, so keep it vertically centred with a little breathing room. */
-.notificate-hide-title-bar .message-content {
-    margin-top: 2px;
-    margin-bottom: 2px;
+/* "Hide title bar" layout: the close button is re-homed next to the title and
+ * body inside a thin `message-header`-classed wrapper (so it keeps its native
+ * circular styling). Strip the wrapper's own header padding/spacing so it adds
+ * no stray gap of its own. */
+.notificate-hide-title-bar .notificate-close-wrapper {
+    padding: 0;
+    spacing: 0;
 }
 
-.notificate-hide-title-bar .message-close-button {
-    margin-left: 6px;
-}
-
-/* "Compact" layout: a single line of "App name • Title". */
+/* "Compact" layout: a single line of "App • Title: Body" built on top of the
+ * native message header, so the close button keeps its normal styling. */
 .notification-banner.notificate-compact {
     min-height: 0;
-}
-
-.notificate-compact-box {
-    spacing: 8px;
-    padding: 6px 10px;
-}
-
-.notificate-compact-app {
-    font-weight: bold;
 }
 
 .notificate-compact-dot {

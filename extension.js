@@ -496,25 +496,37 @@ class NotificationStack {
         });
     }
 
-    // "Hide title bar" layout: drop the app-name/icon/time header row and move
-    // just the close button beside the title/body.
+    // "Hide title bar" layout: drop the app-name/icon/time header row but keep
+    // the native close button so it stays its proper circular self.
     _applyHideTitleBar(message) {
         try {
             const header = message._header;
-            if (!header)
+            const contentRow = message._icon?.get_parent();
+            if (!header || !contentRow)
                 return;
 
-            // Collapse the whole header row...
+            // Remove the whole header row so it stops reserving a tall band at
+            // the top (which made the banner top-heavy).
             header.hide();
 
-            // ...but keep the close button by moving it into the content row,
-            // vertically centred next to the title/body.
+            // Re-home the close button beside the title/body, vertically
+            // centred, so the top and bottom padding stay symmetric. Wrapping
+            // it in an element that carries the `message-header` style class
+            // keeps the theme's `.message .message-header .message-close-button`
+            // rule matching, so the button stays the normal circular "X"
+            // instead of the bare, oversized glyph you get when it is reparented
+            // out of any `.message-header` ancestor.
             const closeButton = header.closeButton;
-            const contentRow = message._icon?.get_parent();
-            if (closeButton && contentRow) {
-                closeButton.y_align = Clutter.ActorAlign.CENTER;
+            if (closeButton) {
+                const wrapper = new St.Bin({
+                    style_class: 'message-header notificate-close-wrapper',
+                    y_align: Clutter.ActorAlign.CENTER,
+                    y_expand: false,
+                });
                 header.remove_child(closeButton);
-                contentRow.add_child(closeButton);
+                closeButton.y_align = Clutter.ActorAlign.CENTER;
+                wrapper.set_child(closeButton);
+                contentRow.add_child(wrapper);
             }
 
             message.add_style_class_name('notificate-hide-title-bar');
@@ -523,34 +535,38 @@ class NotificationStack {
         }
     }
 
-    // "Compact" layout: replace the banner contents with a single line of
-    // "App name • Title", ellipsised to fit.
+    // "Compact" layout: collapse the banner to a single line of
+    // "App • Title: Body", reusing the native header so the close button keeps
+    // its normal circular styling.
     _applyCompact(message) {
         try {
             const notification = message.notification;
-            if (!notification)
+            const header = message._header;
+            if (!notification || !header)
                 return;
 
-            const box = new St.BoxLayout({
-                style_class: 'notificate-compact-box',
-                x_expand: true,
-                y_align: Clutter.ActorAlign.CENTER,
-            });
+            // Drop the source icon, expand button and timestamp; keep the
+            // bound app-name label and the native close button.
+            const closeButton = header.closeButton;
+            header.expandButton?.hide();
+            header.timeLabel?.hide();
+            const sourceIcon = header.get_first_child();
+            if (sourceIcon && sourceIcon !== closeButton)
+                sourceIcon.hide();
 
-            const appLabel = new St.Label({
-                style_class: 'notificate-compact-app',
-                y_align: Clutter.ActorAlign.CENTER,
-            });
-            notification.source.bind_property('title', appLabel, 'text',
-                GObject.BindingFlags.SYNC_CREATE);
-            box.add_child(appLabel);
+            // The header-content box already holds the bold, source-bound app
+            // name (its first child). Append "• Title: Body" after it.
+            const headerContent = header.get_children().find(
+                c => c.has_style_class_name?.('message-header-content'));
+            if (!headerContent)
+                return;
 
             const dot = new St.Label({
                 style_class: 'notificate-compact-dot',
                 text: '•',
                 y_align: Clutter.ActorAlign.CENTER,
             });
-            box.add_child(dot);
+            headerContent.add_child(dot);
 
             const titleLabel = new St.Label({
                 style_class: 'notificate-compact-title',
@@ -561,16 +577,22 @@ class NotificationStack {
             titleLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
 
             const updateText = () => {
-                const text = notification.title || notification.body || '';
-                titleLabel.text = text.replace(/\n/g, ' ');
+                const title = (notification.title || '').replace(/\n/g, ' ');
+                const body = (notification.body || '').replace(/\n/g, ' ');
+                titleLabel.text = body ? `${title}: ${body}` : title;
             };
             updateText();
-            notification.connectObject('notify::title', updateText, message);
-            box.add_child(titleLabel);
+            notification.connectObject(
+                'notify::title', updateText,
+                'notify::body', updateText,
+                message);
+            headerContent.add_child(titleLabel);
 
-            // Swap out the full banner contents for the single-line box. The
-            // message stays an St.Button, so click-to-activate still works.
-            message.set_child(box);
+            // Hide the full content row (icon, title, body) and any actions, so
+            // only the single header line remains.
+            message._icon?.get_parent()?.hide();
+            message._actionBin?.hide();
+
             message.add_style_class_name('notificate-compact');
         } catch (e) {
             logError(e, 'notificate: failed to apply compact layout');
