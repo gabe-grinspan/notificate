@@ -104,11 +104,14 @@ class NotificationStack {
             GObject.BindingFlags.SYNC_CREATE);
         this._actor.add_constraint(constraint);
 
-        // Alignment (and the matching expand flags) are set by
-        // _applyAlignment(); the box is sized to its content so x_align/y_align
-        // actually position it within the work area.
+        // The box expands to receive the full work area (so its alignment has
+        // room to take effect, exactly like the shell's OSD and banner bin),
+        // while staying its natural size and being positioned by x/y_align.
+        // _applyAlignment() sets those aligns from the settings.
         this._box = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
+            x_expand: true,
+            y_expand: true,
             reactive: false,
         });
         this._actor.add_child(this._box);
@@ -136,13 +139,11 @@ class NotificationStack {
         const h = this._settings.get_string('horizontal-alignment');
         const v = this._settings.get_string('vertical-alignment');
 
+        // The box always expands to fill the work area; the alignment then
+        // positions the (natural-size) stack within it. A 'fill' choice maps to
+        // ActorAlign.FILL, which stretches the banners along that axis.
         this._box.x_align = horizontal[h] ?? Clutter.ActorAlign.CENTER;
         this._box.y_align = vertical[v] ?? Clutter.ActorAlign.START;
-
-        // Only fill the axis when explicitly asked to; otherwise the box keeps
-        // its natural size so the alignment takes effect.
-        this._box.x_expand = h === 'fill';
-        this._box.y_expand = v === 'fill';
     }
 
     // Like notification-configurator, the entrance/exit animation is derived
