@@ -587,7 +587,13 @@ class NotificationStack {
             const updateText = () => {
                 const title = (notification.title || '').replace(/\n/g, ' ');
                 const body = (notification.body || '').replace(/\n/g, ' ');
-                titleLabel.text = body ? `${title}: ${body}` : title;
+                // Bold title, then body separated by just a space — the weight
+                // change is the separator, no colon. (Compact keeps the "app •"
+                // prefix ahead of this; Compacter drops it.)
+                const t = GLib.markup_escape_text(title, -1);
+                const b = GLib.markup_escape_text(body, -1);
+                titleLabel.clutter_text.set_markup(
+                    b ? `<b>${t}</b> ${b}` : `<b>${t}</b>`);
             };
             updateText();
             notification.connectObject(

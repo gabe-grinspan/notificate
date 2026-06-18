@@ -26,9 +26,10 @@ notifications appear, and an optional **minimal banner layout**.
   - **Default** — the full banner (app header, title, and body).
   - **No app row** — drops the app name, icon, and timestamp row, keeping the
     title and body.
-  - **Compact** — a single line of "app • title: body".
-  - **Compacter** — the same single line without the app name, i.e.
-    "title: body".
+  - **Compact** — a single line: app name, a dot, then a bold title and the
+    body ("app • **title** body").
+  - **Compacter** — the same line without the app name and dot: just a bold
+    title followed by the body.
 - **Plays nicely with the shell.** Honours Do Not Disturb, urgency levels,
   per-app notification settings, fullscreen/busy suppression, critical-urgency
   banners (which stay until dismissed and are exempt from the limit), and the
