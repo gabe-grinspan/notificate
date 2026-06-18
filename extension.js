@@ -28,6 +28,46 @@ const {Urgency, NotificationDestroyedReason, ANIMATION_TIME} = MessageTray;
 // Matches the private NOTIFICATION_TIMEOUT constant in messageTray.js.
 const NOTIFICATION_TIMEOUT = 4000;
 
+// A BinLayout whose reported size tracks the container's scale, so animating a
+// wrapper's scale_y also shrinks/grows the space it claims in the parent box.
+// That makes the surrounding banners reflow smoothly when one is added or
+// removed instead of snapping into place. This is the same trick the shell's
+// own message list uses (js/ui/messageList.js).
+const ScaleLayout = GObject.registerClass(
+class NotificateScaleLayout extends Clutter.BinLayout {
+    _container = null;
+
+    vfunc_set_container(container) {
+        if (this._container === container)
+            return;
+
+        this._container?.disconnectObject(this);
+        this._container = container;
+
+        if (this._container) {
+            this._container.connectObject(
+                'notify::scale-x', () => this.layout_changed(),
+                'notify::scale-y', () => this.layout_changed(), this);
+        }
+    }
+
+    vfunc_get_preferred_width(container, forHeight) {
+        const [min, nat] = super.vfunc_get_preferred_width(container, forHeight);
+        return [
+            Math.floor(min * container.scale_x),
+            Math.floor(nat * container.scale_x),
+        ];
+    }
+
+    vfunc_get_preferred_height(container, forWidth) {
+        const [min, nat] = super.vfunc_get_preferred_height(container, forWidth);
+        return [
+            Math.floor(min * container.scale_y),
+            Math.floor(nat * container.scale_y),
+        ];
+    }
+});
+
 // Manages the on-screen stack of notification banners. It owns its own chrome
 // actor (a vertical box at the top-centre of the primary monitor) and takes
 // over banner display from the shell's MessageTray.
@@ -130,7 +170,6 @@ class NotificationStack {
             right: Clutter.ActorAlign.END,
         };
         const vertical = {
-            fill: Clutter.ActorAlign.FILL,
             top: Clutter.ActorAlign.START,
             center: Clutter.ActorAlign.CENTER,
             bottom: Clutter.ActorAlign.END,
@@ -146,12 +185,18 @@ class NotificationStack {
         this._box.y_align = vertical[v] ?? Clutter.ActorAlign.START;
     }
 
-    // Like notification-configurator, the entrance/exit animation is derived
-    // from the vertical alignment: anchored to the top, banners slide down;
-    // anywhere else they scale in place.
-    _isTop() {
-        const v = this._settings.get_string('vertical-alignment');
-        return v === 'top' || v === 'fill';
+    // The vertical pivot for the grow/shrink animation, so banners expand from
+    // (and collapse toward) the edge they are anchored to: down from the top,
+    // up from the bottom, outward from the centre.
+    _pivotY() {
+        switch (this._settings.get_string('vertical-alignment')) {
+        case 'bottom':
+            return 1.0;
+        case 'center':
+            return 0.5;
+        default:
+            return 0.0;
+        }
     }
 
     _connectPresence() {
@@ -318,9 +363,17 @@ class NotificationStack {
         if (this._settings.get_boolean('hide-app-title-row'))
             this._applyMinimal(message);
 
-        const item = {notification, message, timeoutId: 0, removing: false};
+        // Wrap the banner so its claimed height can be animated independently of
+        // its contents, letting the rest of the stack reflow smoothly.
+        const actor = new St.Bin({
+            child: message,
+            x_expand: true,
+            layout_manager: new ScaleLayout(),
+        });
+
+        const item = {notification, message, actor, timeoutId: 0, removing: false};
         this._items.push(item);
-        this._box.add_child(message);
+        this._box.add_child(actor);
 
         message.connectObject(
             'close', () => this._removeBanner(item, true),
@@ -334,7 +387,7 @@ class NotificationStack {
             notification.source.policy.forceExpanded)
             message.expand(false);
 
-        this._animateIn(message);
+        this._animateIn(item);
 
         if (notification.urgency !== Urgency.CRITICAL)
             this._resetTimeout(item);
@@ -392,69 +445,48 @@ class NotificationStack {
         if (index !== -1)
             this._items.splice(index, 1);
 
-        const message = item.message;
-        message.remove_all_transitions();
+        const actor = item.actor;
+        actor.remove_all_transitions();
 
         const finish = () => {
-            message.destroy();
+            actor.destroy();
             this._processQueue();
         };
 
         if (animate)
-            this._animateOut(message, finish);
+            this._animateOut(item, finish);
         else
             finish();
     }
 
-    _animateIn(message) {
-        message.opacity = 0;
-        message.set_pivot_point(0.5, 0.5);
-
-        if (this._isTop()) {
-            // Slide down from above, like the stock top banner.
-            const height = message.get_preferred_height(-1)[1] || 64;
-            message.translation_y = -height;
-            message.ease({
-                opacity: 255,
-                translation_y: 0,
-                duration: ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
-        } else {
-            message.scale_x = 0.9;
-            message.scale_y = 0.9;
-            message.ease({
-                opacity: 255,
-                scale_x: 1,
-                scale_y: 1,
-                duration: ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
-        }
+    // Grow the wrapper from a collapsed line into place. Because ScaleLayout
+    // ties the claimed height to scale_y, the banners below slide down to make
+    // room rather than jumping.
+    _animateIn(item) {
+        const actor = item.actor;
+        actor.set_pivot_point(0.5, this._pivotY());
+        actor.opacity = 0;
+        actor.scale_y = 0;
+        actor.ease({
+            opacity: 255,
+            scale_y: 1,
+            duration: ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
     }
 
-    _animateOut(message, onComplete) {
-        message.set_pivot_point(0.5, 0.5);
-
-        if (this._isTop()) {
-            const height = message.height || message.get_preferred_height(-1)[1] || 64;
-            message.ease({
-                opacity: 0,
-                translation_y: -height,
-                duration: ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onComplete,
-            });
-        } else {
-            message.ease({
-                opacity: 0,
-                scale_x: 0.9,
-                scale_y: 0.9,
-                duration: ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onComplete,
-            });
-        }
+    // Collapse the wrapper back to a line; the rest of the stack slides up to
+    // close the gap instead of snapping.
+    _animateOut(item, onComplete) {
+        const actor = item.actor;
+        actor.set_pivot_point(0.5, this._pivotY());
+        actor.ease({
+            opacity: 0,
+            scale_y: 0,
+            duration: ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete,
+        });
     }
 
     // Minimal layout: drop the app-name/icon/time header but keep the close
