@@ -1,31 +1,40 @@
 /* SPDX-FileCopyrightText: 2026 Gabe Grinspan
  * SPDX-License-Identifier: GPL-3.0-or-later */
 
-/* "Hide title bar" layout: the close button is re-homed next to the title and
- * body inside a thin `message-header`-classed wrapper (so it keeps its native
- * circular styling). Strip the wrapper's own header padding/spacing so it adds
- * no stray gap of its own. */
-.notificate-hide-title-bar .notificate-close-wrapper {
+/* Both custom layouts borrow the native close button and re-home it inside a
+ * thin `message-header`-classed wrapper, so it keeps its circular styling. Strip
+ * the wrapper's inherited header padding/spacing so it adds no stray gap. */
+.notification-banner .notificate-close-wrapper {
     padding: 0;
     spacing: 0;
 }
 
-/* Without the header row, the banner's default 64px min-height is taller than
- * the title/body content, leaving empty space above and below. Let the card
- * shrink to hug its contents instead. */
+/* "Hide title bar" layout: drop the header row, keep title/body + close button. */
 .notification-banner.notificate-hide-title-bar {
+    /* Without the header row the default 64px min-height is taller than the
+     * title/body, leaving empty space above and below; hug the contents. */
     min-height: 0;
 }
 
-/* "Compact" layout: a single self-built line of "App • Title: Body". The
- * `.message` root already supplies symmetric padding; the borrowed close button
- * (in a message-header-classed wrapper) keeps its native circular styling. */
+/* When the header isn't the first child the theme adds a 12px top margin to the
+ * content row ("If the header isn't displayed we need more top margin"), which
+ * shoves the title/body (and the centred close button) downward and off the
+ * card's vertical centre. We keep our own symmetric padding, so zero it. */
+.notification-banner.notificate-hide-title-bar .message-box:first-child {
+    margin-top: 0;
+}
+
+/* "Compact" layout: a single self-built line of "App • Title: Body". */
 .notification-banner.notificate-compact {
     min-height: 0;
 }
 
 .notificate-compact-box {
-    spacing: 8px;
+    /* 4px between items gives the separator dot a tight, even gap on each side
+     * (half the usual). The close button's gap is restored on the title below. */
+    spacing: 4px;
+    /* Indent the line from the card edge to match a normal banner's header. */
+    padding: 0 6px;
 }
 
 .notificate-compact-app {
@@ -38,4 +47,6 @@
 
 .notificate-compact-title {
     color: rgba(255, 255, 255, 0.85);
+    /* Restore the wider gap before the close button (4px spacing + 4px). */
+    margin-right: 4px;
 }
