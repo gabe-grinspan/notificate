@@ -7,7 +7,7 @@ import Gtk from 'gi://Gtk';
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const HORIZONTAL_VALUES = ['fill', 'left', 'center', 'right'];
-const VERTICAL_VALUES = ['fill', 'top', 'center', 'bottom'];
+const VERTICAL_VALUES = ['top', 'center', 'bottom'];
 
 export default class NotificatePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -60,7 +60,7 @@ export default class NotificatePreferences extends ExtensionPreferences {
             values: VERTICAL_VALUES,
             title: _('Vertical Alignment'),
             subtitle: _('Vertical position of notifications on screen'),
-            labels: [_('Fill'), _('Top'), _('Center'), _('Bottom')],
+            labels: [_('Top'), _('Center'), _('Bottom')],
         }));
 
         // --- Appearance --------------------------------------------------

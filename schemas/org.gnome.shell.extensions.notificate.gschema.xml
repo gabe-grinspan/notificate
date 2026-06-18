@@ -12,7 +12,6 @@
   </enum>
 
   <enum id="org.gnome.shell.extensions.notificate.vertical-alignment">
-    <value nick="fill" value="0"/>
     <value nick="top" value="1"/>
     <value nick="center" value="2"/>
     <value nick="bottom" value="3"/>
