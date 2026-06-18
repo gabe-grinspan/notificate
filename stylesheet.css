@@ -1,10 +1,12 @@
 /* SPDX-FileCopyrightText: 2026 Gabe Grinspan
  * SPDX-License-Identifier: GPL-3.0-or-later */
 
-/* Both custom layouts borrow the native close button and re-home it inside a
- * thin `message-header`-classed wrapper, so it keeps its circular styling. Strip
- * the wrapper's inherited header padding/spacing so it adds no stray gap. */
-.notification-banner .notificate-close-wrapper {
+/* The custom layouts borrow the native close/expand buttons and re-home them
+ * inside a thin `message-header`-classed wrapper, so they keep their circular
+ * styling. Strip the wrapper's inherited header padding so it adds no stray gap.
+ * (Use !-free specificity high enough to beat the theme's `.message
+ * .message-header`.) */
+.notification-banner .notificate-header-button {
     padding: 0;
     spacing: 0;
 }
@@ -49,4 +51,10 @@
     color: rgba(255, 255, 255, 0.85);
     /* Restore the wider gap before the close button (4px spacing + 4px). */
     margin-right: 4px;
+}
+
+/* The full body revealed beneath the compact summary line when expanded.
+ * Indent it to line up with the title and give it a little breathing room. */
+.notificate-compact-body {
+    padding: 4px 6px 0 6px;
 }

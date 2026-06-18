@@ -79,6 +79,14 @@ export default class NotificatePreferences extends ExtensionPreferences {
             labels: [_('Default'), _('No app row'), _('Compact'), _('Compacter')],
         }));
 
+        const expandRow = new Adw.SwitchRow({
+            title: _('Show expand arrow'),
+            subtitle: _('Let banners be expanded to reveal the full body. In the compact layouts the body is hidden until expanded.'),
+        });
+        appearanceGroup.add(expandRow);
+        // Gio.SettingsBindFlags.DEFAULT === 0
+        settings.bind('show-expand-arrow', expandRow, 'active', 0);
+
         window.set_default_size(560, 420);
     }
 

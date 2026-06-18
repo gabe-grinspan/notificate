@@ -361,15 +361,22 @@ class NotificationStack {
         message.can_focus = false;
         message.add_style_class_name('notification-banner');
 
+        const showExpand = this._settings.get_boolean('show-expand-arrow');
+
         switch (this._settings.get_string('notification-layout')) {
         case 'no-app-name':
-            this._applyNoAppName(message);
+            this._applyNoAppName(message, showExpand);
             break;
         case 'compact':
-            this._applyCompact(message, false);
+            this._applyCompact(message, false, showExpand);
             break;
         case 'compacter':
-            this._applyCompact(message, true);
+            this._applyCompact(message, true, showExpand);
+            break;
+        default:
+            // Default layout keeps the native header; just honour the toggle.
+            if (!showExpand)
+                message._header?.expandButton?.hide();
             break;
         }
 
@@ -499,9 +506,26 @@ class NotificationStack {
         });
     }
 
+    // Re-home a native header button (close or expand) into another row while
+    // keeping its circular styling. The theme styles these via
+    // `.message .message-header .message-<x>-button`, so we wrap the button in an
+    // element that also carries the `message-header` class; our own
+    // `.notificate-header-button` rule then strips that wrapper's header padding.
+    _wrapHeaderButton(button) {
+        const wrapper = new St.Bin({
+            style_class: 'message-header notificate-header-button',
+            y_align: Clutter.ActorAlign.CENTER,
+            y_expand: false,
+        });
+        button.get_parent()?.remove_child(button);
+        button.y_align = Clutter.ActorAlign.CENTER;
+        wrapper.set_child(button);
+        return wrapper;
+    }
+
     // "No app name" layout: drop the app-name/icon/time header row but keep the
     // title, body and the native close button (still its proper circular self).
-    _applyNoAppName(message) {
+    _applyNoAppName(message, showExpand) {
         try {
             const header = message._header;
             const contentRow = message._icon?.get_parent();
@@ -512,25 +536,15 @@ class NotificationStack {
             // the top (which made the banner top-heavy).
             header.hide();
 
-            // Re-home the close button beside the title/body, vertically
-            // centred, so the top and bottom padding stay symmetric. Wrapping
-            // it in an element that carries the `message-header` style class
-            // keeps the theme's `.message .message-header .message-close-button`
-            // rule matching, so the button stays the normal circular "X"
-            // instead of the bare, oversized glyph you get when it is reparented
-            // out of any `.message-header` ancestor.
-            const closeButton = header.closeButton;
-            if (closeButton) {
-                const wrapper = new St.Bin({
-                    style_class: 'message-header notificate-close-wrapper',
-                    y_align: Clutter.ActorAlign.CENTER,
-                    y_expand: false,
-                });
-                header.remove_child(closeButton);
-                closeButton.y_align = Clutter.ActorAlign.CENTER;
-                wrapper.set_child(closeButton);
-                contentRow.add_child(wrapper);
-            }
+            // Re-home the expand arrow (optional) and the close button beside
+            // the title/body, vertically centred so the padding stays
+            // symmetric. The body is still present, so the native expand()
+            // reveals it exactly as in the default layout.
+            if (showExpand && header.expandButton)
+                contentRow.add_child(this._wrapHeaderButton(header.expandButton));
+
+            if (header.closeButton)
+                contentRow.add_child(this._wrapHeaderButton(header.closeButton));
 
             message.add_style_class_name('notificate-no-app-name');
         } catch (e) {
@@ -538,20 +552,22 @@ class NotificationStack {
         }
     }
 
-    // "Compact" / "Compacter" layout: replace the whole banner with a single
-    // line of "App • Title: Body" (Compact), or just "Title: Body" when hideApp
-    // is set (Compacter). We build our own line rather than reusing the native
-    // header, because the header's TimeLabel re-shows itself whenever its
-    // datetime is refreshed (so a hidden "Just now" keeps coming back). Only the
-    // close button is borrowed, wrapped so it keeps its circular styling.
-    _applyCompact(message, hideApp) {
+    // "Compact" / "Compacter" layout: replace the banner with a single summary
+    // line of "App • Title body" (Compact) or "Title body" when hideApp is set
+    // (Compacter). When the expand arrow is enabled the body is kept hidden
+    // below the line and revealed on expand; otherwise it is dropped. We build
+    // our own line rather than reusing the native header, because the header's
+    // TimeLabel re-shows itself whenever its datetime is refreshed (so a hidden
+    // "Just now" keeps coming back).
+    _applyCompact(message, hideApp, showExpand) {
         try {
             const notification = message.notification;
             const header = message._header;
             if (!notification || !header)
                 return;
 
-            const box = new St.BoxLayout({
+            // --- summary line ---
+            const topRow = new St.BoxLayout({
                 style_class: 'notificate-compact-box',
                 x_expand: true,
                 y_align: Clutter.ActorAlign.CENTER,
@@ -566,60 +582,112 @@ class NotificationStack {
                 });
                 notification.source.bind_property('title', appLabel, 'text',
                     GObject.BindingFlags.SYNC_CREATE);
-                box.add_child(appLabel);
+                topRow.add_child(appLabel);
 
                 const dot = new St.Label({
                     style_class: 'notificate-compact-dot',
                     text: '•',
                     y_align: Clutter.ActorAlign.CENTER,
                 });
-                box.add_child(dot);
+                topRow.add_child(dot);
             }
 
-            const titleLabel = new St.Label({
+            const summary = new St.Label({
                 style_class: 'notificate-compact-title',
                 x_expand: true,
                 y_align: Clutter.ActorAlign.CENTER,
             });
-            titleLabel.clutter_text.single_line_mode = true;
-            titleLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            summary.clutter_text.single_line_mode = true;
+            summary.clutter_text.ellipsize = Pango.EllipsizeMode.END;
 
-            const updateText = () => {
+            // Collapsed: bold title + body teaser, separated by just a space.
+            // Expanded: only the bold title (the full body shows below).
+            const renderSummary = expanded => {
                 const title = (notification.title || '').replace(/\n/g, ' ');
                 const body = (notification.body || '').replace(/\n/g, ' ');
-                // Bold title, then body separated by just a space — the weight
-                // change is the separator, no colon. (Compact keeps the "app •"
-                // prefix ahead of this; Compacter drops it.)
                 const t = GLib.markup_escape_text(title, -1);
                 const b = GLib.markup_escape_text(body, -1);
-                titleLabel.clutter_text.set_markup(
-                    b ? `<b>${t}</b> ${b}` : `<b>${t}</b>`);
+                summary.clutter_text.set_markup(
+                    b && !expanded ? `<b>${t}</b> ${b}` : `<b>${t}</b>`);
             };
-            updateText();
+            renderSummary(false);
             notification.connectObject(
-                'notify::title', updateText,
-                'notify::body', updateText,
+                'notify::title', () => renderSummary(message.expanded),
+                'notify::body', () => renderSummary(message.expanded),
                 message);
-            box.add_child(titleLabel);
+            topRow.add_child(summary);
 
-            // Borrow the native close button (circular "X"). Wrapping it in a
-            // `message-header`-classed element keeps the theme styling matching
-            // after it leaves the real header.
-            const closeButton = header.closeButton;
-            if (closeButton) {
-                const wrapper = new St.Bin({
-                    style_class: 'message-header notificate-close-wrapper',
-                    y_align: Clutter.ActorAlign.CENTER,
+            // The arrow is only useful when there is a body or actions to show.
+            const bodyBin = message._bodyBin;
+            const actionBin = message._actionBin;
+            const canExpand = showExpand &&
+                (!!notification.body || !!actionBin?.child);
+
+            if (canExpand && header.expandButton)
+                topRow.add_child(this._wrapHeaderButton(header.expandButton));
+
+            if (header.closeButton)
+                topRow.add_child(this._wrapHeaderButton(header.closeButton));
+
+            // --- assemble ---
+            const vbox = new St.BoxLayout({
+                orientation: Clutter.Orientation.VERTICAL,
+                x_expand: true,
+            });
+            vbox.add_child(topRow);
+
+            if (canExpand) {
+                // Keep the native body (and any actions) in the tree but hidden,
+                // so the native expand()/unexpand() can reveal them below the
+                // summary line. A ScaleLayout wrapper animates the body's height.
+                const bodyWrapper = new St.Bin({
+                    style_class: 'notificate-compact-body',
+                    x_expand: true,
+                    layout_manager: new ScaleLayout(),
+                    visible: false,
                 });
-                header.remove_child(closeButton);
-                closeButton.y_align = Clutter.ActorAlign.CENTER;
-                wrapper.set_child(closeButton);
-                box.add_child(wrapper);
+                bodyWrapper.scale_y = 0;
+                bodyWrapper.opacity = 0;
+                if (bodyBin) {
+                    bodyBin.get_parent()?.remove_child(bodyBin);
+                    bodyWrapper.set_child(bodyBin);
+                }
+                vbox.add_child(bodyWrapper);
+
+                if (actionBin) {
+                    actionBin.get_parent()?.remove_child(actionBin);
+                    vbox.add_child(actionBin);
+                }
+
+                message.connectObject(
+                    'expanded', () => {
+                        bodyWrapper.show();
+                        bodyWrapper.set_pivot_point(0.5, 0);
+                        bodyWrapper.ease({
+                            scale_y: 1,
+                            opacity: 255,
+                            duration: ANIMATION_TIME,
+                            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                        });
+                        renderSummary(true);
+                    },
+                    'unexpanded', () => {
+                        bodyWrapper.set_pivot_point(0.5, 0);
+                        bodyWrapper.ease({
+                            scale_y: 0,
+                            opacity: 0,
+                            duration: ANIMATION_TIME,
+                            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                            onComplete: () => bodyWrapper.hide(),
+                        });
+                        renderSummary(false);
+                    },
+                    message);
             }
 
-            // Swap the full banner contents for the single-line box. The message
-            // stays an St.Button, so click-to-activate still works.
-            message.set_child(box);
+            // Swap the full banner contents for our layout. The message stays an
+            // St.Button, so click-to-activate still works.
+            message.set_child(vbox);
             message.add_style_class_name('notificate-compact');
         } catch (e) {
             logError(e, 'notificate: failed to apply compact layout');

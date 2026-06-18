@@ -30,6 +30,9 @@ notifications appear, and an optional **minimal banner layout**.
     body ("app • **title** body").
   - **Compacter** — the same line without the app name and dot: just a bold
     title followed by the body.
+- **Expandable banners.** An optional expand arrow (on by default) opens a
+  banner to reveal its full body and any action buttons. In the compact layouts
+  the body stays hidden behind the single line until you expand it.
 - **Plays nicely with the shell.** Honours Do Not Disturb, urgency levels,
   per-app notification settings, fullscreen/busy suppression, critical-urgency
   banners (which stay until dismissed and are exempt from the limit), and the
@@ -73,6 +76,7 @@ gnome-extensions prefs notificate@gabe-grinspan.github.io
 | Horizontal Alignment | `Center` | Horizontal position of notifications on screen. |
 | Vertical Alignment | `Top` | Vertical position of notifications on screen. |
 | Notification Layout | `Default` | Banner detail: `Default`, `No app row`, `Compact`, or `Compacter`. |
+| Show expand arrow | `On` | Show the arrow that expands a banner to its full body and actions. In the compact layouts the body is hidden until expanded. |
 
 ## Compatibility
 

@@ -52,6 +52,16 @@
       <description>Vertical position of notifications on screen.</description>
     </key>
 
+    <key name="show-expand-arrow" type="b">
+      <default>true</default>
+      <summary>Show the expand arrow</summary>
+      <description>
+        Show the expand/collapse arrow on banners so they can be opened to
+        reveal the full body and any action buttons. Applies to every layout;
+        in the compact layouts the body is hidden until the arrow is clicked.
+      </description>
+    </key>
+
     <key name="notification-layout"
          enum="org.gnome.shell.extensions.notificate.notification-layout">
       <default>'default'</default>
