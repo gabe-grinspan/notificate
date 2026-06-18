@@ -93,6 +93,15 @@ Useful while iterating:
 journalctl -f -o cat /usr/bin/gnome-shell
 ```
 
+## Acknowledgements
+
+The on-screen position options and the minimal *Hide App Title Row* layout were
+inspired by [Notification Configurator](https://github.com/ExposedCat/gnome-notification-configurator)
+by [ExposedCat](https://github.com/ExposedCat) — the option names and behaviour
+deliberately mirror that extension so they feel familiar. Notificate's own
+implementation is independent, but credit for the ideas (and for a great
+notification extension worth checking out) belongs there.
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 or later
