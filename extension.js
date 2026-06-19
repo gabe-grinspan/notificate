@@ -14,6 +14,7 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
+import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -92,6 +93,17 @@ class NotificationStack {
         global.display.connectObject('in-fullscreen-changed',
             () => this._processQueue(), this);
 
+        Main.overview.connectObject('window-drag-begin', this._onDragBegin.bind(this), this);
+        Main.overview.connectObject('window-drag-cancelled', this._onDragEnd.bind(this), this);
+        Main.overview.connectObject('window-drag-end', this._onDragEnd.bind(this), this);
+
+        Main.overview.connectObject('item-drag-begin', this._onDragBegin.bind(this), this);
+        Main.overview.connectObject('item-drag-cancelled', this._onDragEnd.bind(this), this);
+        Main.overview.connectObject('item-drag-end', this._onDragEnd.bind(this), this);
+
+        Main.xdndHandler.connectObject('drag-begin', this._onDragBegin.bind(this), this);
+        Main.xdndHandler.connectObject('drag-end', this._onDragEnd.bind(this), this);
+
         this._settings.connectObject(
             'changed::max-notifications', () => this._processQueue(),
             'changed::horizontal-alignment', () => this._applyAlignment(),
@@ -133,10 +145,13 @@ class NotificationStack {
         // A non-reactive container that fills the primary monitor work area.
         // Because it is non-reactive, clicks pass through everywhere except on
         // the reactive banners themselves.
+        // Keep the actor hidden until a banner is actually visible so it does
+        // not interfere with pointer/draggable input across the screen.
         this._actor = new St.Widget({
             name: 'notificate-stack',
             layout_manager: new Clutter.BinLayout(),
             reactive: false,
+            visible: false,
         });
 
         const constraint = new Layout.MonitorConstraint({primary: true});
@@ -344,6 +359,16 @@ class NotificationStack {
         return true;
     }
 
+    _showActor() {
+        if (this._actor && !this._actor.visible)
+            this._actor.show();
+    }
+
+    _hideActor() {
+        if (this._actor && this._actor.visible)
+            this._actor.hide();
+    }
+
     _processQueue() {
         while (this._queue.length > 0) {
             if (this._tryShow(this._queue[0]))
@@ -351,6 +376,16 @@ class NotificationStack {
             else
                 break;
         }
+    }
+
+    _onDragBegin() {
+        if (this._actor)
+            Shell.util_set_hidden_from_pick(this._actor, true);
+    }
+
+    _onDragEnd() {
+        if (this._actor)
+            Shell.util_set_hidden_from_pick(this._actor, false);
     }
 
     _addBanner(notification) {
@@ -391,6 +426,7 @@ class NotificationStack {
         const item = {notification, message, actor, timeoutId: 0, removing: false};
         this._items.push(item);
         this._box.add_child(actor);
+        this._showActor();
 
         message.connectObject(
             'close', () => this._removeBanner(item, true),
@@ -467,6 +503,8 @@ class NotificationStack {
 
         const finish = () => {
             actor.destroy();
+            if (this._items.length === 0)
+                this._hideActor();
             this._processQueue();
         };
 
